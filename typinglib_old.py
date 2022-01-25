@@ -6,7 +6,7 @@ import random
 
 WINDOW_SIZE = WIDTH, HEIGHT = 600, 400  # ウインドウサイズ
 BACKGROUND_COLOR = (0, 0, 0)  # 背景色(黒)
-FPS = 24  # フレームレート
+FPS = 30  # フレームレート
 
 
 def draw_rect_alpha(surface, color, rect, frame=0):
@@ -76,7 +76,7 @@ class Gauge(GameObj):
     def display_fading(self):
         draw_rect_alpha(self.screen, (self.color[0], self.color[1], self.color[2], self.alpha), self.pos)
         draw_rect_alpha(self.screen, (0, 255, 255, self.alpha), self.frame_pos, 5)
-        if (self.alpha > 10):
+        if self.alpha >= 10:
             self.alpha -= 10
 
     def ret_power(self):
@@ -86,7 +86,7 @@ class Gauge(GameObj):
         self.pos=self.pos_old
         self.frame_pos=self.pos_old
 
-class GaugeVertical(Gauge):
+class Gauge_Launch_Power(Gauge):
     def __init__(self,screen, color, pos,gauge_max):
         super().__init__(screen,color,pos)
         self.gauge_max=gauge_max
@@ -98,14 +98,11 @@ class GaugeVertical(Gauge):
             self.gauge = 0
 
 
-class GaugeHorizontal(Gauge):
+class Gauge_Horizontal(Gauge):
 
-    def __init__(self,screen, color, pos, gauge_max):
+    def __init__(self,screen, color, pos):
         super().__init__(screen,color,pos)
         self.time=0
-
-    def set_gauge_max(self,gauge_max):
-        self.gauge_max=gauge_max;
 
     def set_max_time(self,time):
         self.time=time#時間をとって

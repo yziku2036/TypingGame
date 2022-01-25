@@ -8,7 +8,7 @@ from typinglib_old import *
 #from typinglib import *
 
 
-class Game_States():
+class Game_States_Init():
     def __init__(self):
         self.solved=True
         self.score=0
@@ -19,11 +19,12 @@ class Game_States():
         self.score_mul=0
         self.deplete_start_timer=0
         self.typed=0
+        self.limit_time=0
 
     def init(self):
         super().__init__()
 
-class Text_Colored():
+class Text_Colored_Init():
     def __init__(self,screen):
         self.text_title=Text(screen,(255,255,0),50)
         self.text_vector = Text(screen, (255, 200, 150), 30)
@@ -44,30 +45,24 @@ class Process_State(enum.Enum):
 FPS = 30
 WINDOW_SIZE = WIDTH, HEIGHT = 600, 400#ウインドウサイズ
 BACKGROUND_COLOR = (0, 0, 0)  # 背景色(黒)
-
-
-def text_init():
-    return
-
-
 def main():
     global_k = '0'
-    game_state_now=Game_States()
+    game_state_now=Game_States_Init()
     pygame.init()
     state_now = Process_State.TITLE
     screen = pygame.display.set_mode(WINDOW_SIZE)
     pygame.display.set_caption("RockeTyping")
     bg = pygame.image.load("images/background.png")
-    texts=Text_Colored(screen)
+    texts=Text_Colored_Init(screen)
 
     word_data = DataReader("words", screen)
 
     rocket = Rocket(1, 1, (100, 300), 0)
     #ゲージの定義は色、(左上のx座標、y座標、xサイズ、yサイズ)、ゲージの分解能
-    gauge_power = GaugeVertical(screen, (255, 255, 0), (550, 50, 40, 300),300)
+    gauge_power = Gauge_Launch_Power(screen, (255, 255, 0), (550, 50, 40, 300), 300)
    # gauge_timer = GaugeHorizontal(screen, (255, 0, 128), (20, 40, 300, 30), 200)
     gauge_timer= GaugeTimer(screen,(255,0,128),(20,40,300,30))
-    gauge_vector = GaugeHorizontal(screen, (0, 128, 128), (20, 110, 300, 30), 200)
+    gauge_vector = Gauge_Horizontal(screen, (0, 128, 128), (20, 110, 300, 30))
 
     timer = 0
 
@@ -206,9 +201,9 @@ def main():
                     elif state_now == Process_State.LAUNCHING_2:
                         #ロケットのパワーを確定した瞬間
                         state_now = Process_State.FLYING
-                        limit_time=calc_limit_time(rocket.movy)
+                        game_state_now.limit_time=calc_limit_time(rocket.movy)
                         timer = calc_limit_time(rocket.movy)
-                        gauge_vector.set_gauge_max(rocket.movx*2)
+                        # gauge_vector.set_gauge_max(rocket.movx*2)
                         gauge_timer.set_limit_time(timer)
                         deplete_start_timer=rocket.movx*FPS/16
                         #gauge_timer.set_gauge_max(timer)
