@@ -79,7 +79,7 @@ class Gauge(metaclass=ABCMeta):
     def set_max_value(self, max_value):
         self.max_value = max_value
 
-    def charge_gauge(self):
+    def change_gauge(self):
         pass
 
 
@@ -113,25 +113,25 @@ class Gauge_Launch_Power(Gauge_Vertical):
         super().__init__(screen, color, pos, max_value)
 
     def update(self):
-        self.charge_gauge()
+        self.change_gauge()
         if self.gauge_percentage >= 100:
             self.gauge_percentage = 0
         super().update()
 
-    def charge_gauge(self):
+    def change_gauge(self):
         self.gauge_percentage += 3
 
 
-class GaugeTimer(Gauge_Horizontal):
+class Gauge_Timer(Gauge_Horizontal):
     def __init__(self, screen, color, pos, max_value):
         super().__init__(screen, color, pos, max_value)
         self.gauge_percentage = 100
 
-    def charge_gauge(self):
+    def change_gauge(self):
         self.gauge_percentage -= (1 / FPS) * (100 / self.max_value)
 
     def update(self):
-        self.charge_gauge()
+        self.change_gauge()
         super().update()
 
     def reset(self):
@@ -142,17 +142,6 @@ class Rocket(pygame.sprite.Sprite):
     # コンストラクタ
     def __init__(self, width_rate, height_rate, pos, angle):
         super(Rocket, self).__init__()
-        self.width_rate = width_rate
-        self.height_rate = height_rate
-        self.pos = pos
-
-        self.image_angle = 0
-        self.clockwise = False
-        self.locked = True
-        self.image_angle = angle
-        self.speed_x: float = 0.0
-        self.speed_y: float = 0.0
-
         # 画像をリストで読み込み
         self.images = list()
         for num in range(0, 5):
@@ -161,21 +150,18 @@ class Rocket(pygame.sprite.Sprite):
         # 現在このクラスが指す画像を一応初期化
         self.index = 0
         self.image = self.images[self.index]
-
-        # インスタンス変数から縮尺を変更
-        for num in range(0, 5):
-            print(num)
-            self.images[num] = self.change_image_scale(self.images[num])
-
-        # 画像の描写範囲　中心を割り出して回転させるのに用いる
         self.rect = self.image.get_rect()
-
-    # 画像のサイズを変更する関数
-    def change_image_scale(self, image):
-        x_size = image.get_width() * self.width_rate
-        y_size = image.get_height() * self.height_rate
-        changed_image = pygame.transform.scale(self.image, (int(x_size), int(y_size)))
-        return changed_image
+        self.pos = pos
+        self.image_angle = 0
+        self.clockwise = False
+        self.locked = True
+        self.image_angle = angle
+        self.speed_x: float = 0.0
+        self.speed_y: float = 0.0
+        # インスタンス変数から縮尺を変更
+        #for num in range(0, 5):
+         #   print(num)
+            #self.images[num] = self.change_image_scale(self.images[num],width_rate,height_rate)
 
     def reset(self):
         self.index = 0
@@ -188,21 +174,18 @@ class Rocket(pygame.sprite.Sprite):
 
     # 1フレーム事に実行される関数
     def update(self):
-        self.index += 1
         if self.index >= len(self.images):
             self.index = 0
-
         self.image = self.images[self.index]
+        self.index += 1
         self.display()
         if not self.locked:
-            self.rotate_center_image()
+            self.rotate_image()
 
     def display(self):
-        self.image = self.images[4]
         rot_image = pygame.transform.rotate(self.image, self.image_angle)
         rot_rect = rot_image.get_rect()
         rot_rect.center = self.pos  # 中心位置を設定(移動)
-
         # 結果を格納
         self.image = rot_image
         self.rect = rot_rect
@@ -227,6 +210,13 @@ class Rocket(pygame.sprite.Sprite):
     def accelerate(self, val):
         self.speed_x += val
 
+        # 画像のサイズを変更する関数
+    def change_image_scale(self, image,width_rate,height_rate):
+        x_size = image.get_width() * width_rate
+        y_size = image.get_height() * height_rate
+        changed_image = pygame.transform.scale(self.image, (int(x_size), int(y_size)))
+        return changed_image
+
     def rotate_mode_change(self):
         now_mode = self.locked
         print(now_mode)
@@ -234,7 +224,7 @@ class Rocket(pygame.sprite.Sprite):
         print(self.locked)
 
     # 画像の中心で回転させる関数
-    def rotate_center_image(self):
+    def rotate_image(self):
         # 画像の傾きを設定
         if not self.locked:
             if self.clockwise:
@@ -259,7 +249,8 @@ class Rocket(pygame.sprite.Sprite):
         self.speed_x = cos * power
         self.speed_y = sin * power
 
-    def move_center(self, bg_pos):
+    #ロケットを動かすのに用いる
+    def move(self, bg_pos):
         # 画面中央のとき
         moved_x = self.pos[0]
         moved_y = self.pos[1]

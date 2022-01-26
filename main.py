@@ -62,7 +62,7 @@ def main():
     # ゲージの定義は色、(左上のx座標、y座標、xサイズ、yサイズ)、ゲージの値の最大値(見た目に影響はなく、ret_powerの戻り値にのみ影響)
     gauge_power = Gauge_Launch_Power(screen, (255, 255, 0), (550, 50, 40, 300), 100)
     # gauge_timer = GaugeHorizontal(screen, (255, 0, 128), (20, 40, 300, 30), 200)
-    gauge_timer = GaugeTimer(screen, (255, 0, 128), (20, 40, 300, 30), 20)
+    gauge_timer = Gauge_Timer(screen, (255, 0, 128), (20, 40, 300, 30), 20)
     gauge_vector = Gauge_Horizontal(screen, (0, 128, 128), (20, 110, 300, 30), 100)
 
     time_remaining = 0
@@ -150,7 +150,7 @@ def main():
             game_state_now.dist_moved += rocket.speed_x
             time_remaining -= 1 / FPS
 
-            rocket.move_center(game_state_now.bg_pos)
+            rocket.move(game_state_now.bg_pos)
             if game_state_now.bg_pos[0] > WIDTH:
                 game_state_now.bg_pos[0] = 0
             if game_state_now.bg_pos[1] < 0:
