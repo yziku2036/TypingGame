@@ -1,13 +1,11 @@
 import pygame
-import sys
-# import main
 import math
-
 import random
+from abc import ABCMeta, abstractmethod
 
 WINDOW_SIZE = WIDTH, HEIGHT = 600, 400  # ウインドウサイズ
 BACKGROUND_COLOR = (0, 0, 0)  # 背景色(黒)
-FPS = 24  # フレームレート
+FPS = 30  # フレームレート
 
 
 def draw_rect_alpha(surface, color, rect, frame=0):
@@ -16,14 +14,21 @@ def draw_rect_alpha(surface, color, rect, frame=0):
     surface.blit(shape_surf, rect)
 
 
-class GameObj:
-    def __init__(self):
-        self.state = state.TITLE
-
-    def state(self, state):
-        self.state = state
-
-    # def update(self):
+def calc_limit_time(time):
+    # 制限時間を計算
+    time /= 5
+    time *= 2
+    if time > 120:
+        time = 120
+    elif time > 90:
+        tmp = (time - 90) / 3
+        time = 90 + tmp
+    elif time > 60:
+        tmp = (time - 60) / 2
+        time = 60 + tmp
+    elif time < 20:
+        time = 20
+    return time
 
 
 class Text:
@@ -31,24 +36,28 @@ class Text:
         self.screen = screen
         self.color = color
         self.font = pygame.font.Font("fonts/" + "Senobi-Gothic-Regular.ttf", size)
-        # self.font=pygame.font.Font(None,size)
 
     def display(self, text, pos):
         text = self.font.render(text, True, self.color)
         self.screen.blit(text, pos)
 
-class Gauge(GameObj):
-    def __init__(self, screen, color, pos, max):
+
+@abstractmethod
+class Gauge(metaclass=ABCMeta):
+    def __init__(self, screen, color, pos, max_value=100):
         self.color = color
+        #       posは(左上のx、左上のy、横の長さ、縦の長さ)のタプル
         self.pos = pos
         self.frame_pos = pos
+        self.pos_old = pos
         self.screen = screen
-        self.max = max
-        self.gauge = 0.0
+        self.gauge_value = 0.0
+        self.gauge_percentage = 0.0
         self.movx = 0
         self.movy = 0
         self.alpha = 255
-        # self.barpos=self.pos[1]+self.pos[3]
+        self.gauge_length = pos[3]
+        self.max_value = max_value
 
     def display(self):
         pygame.draw.rect(self.screen, self.color, self.pos)
@@ -57,50 +66,102 @@ class Gauge(GameObj):
     def display_fading(self):
         draw_rect_alpha(self.screen, (self.color[0], self.color[1], self.color[2], self.alpha), self.pos)
         draw_rect_alpha(self.screen, (0, 255, 255, self.alpha), self.frame_pos, 5)
-        if (self.alpha > 10):
+        if self.alpha >= 10:
             self.alpha -= 10
+        elif self.alpha > 0:
+            self.alpha = 0
 
     def ret_power(self):
-        return self.gauge
+        return (self.gauge_percentage * self.max_value) / 100
+
+    def reset(self):
+        self.pos = self.pos_old
+        self.frame_pos = self.pos_old
+
+    def set_max_value(self, max_value):
+        self.max_value = max_value
+
+    def charge_gauge(self):
+        pass
 
 
-class GaugeVertical(Gauge):
-    def update(self):
-        self.gauge += 10
-        barpos = self.pos[1] + self.pos[3]
-        self.pos = (self.pos[0], barpos - self.gauge, self.pos[2], self.gauge)
-        if self.gauge >= self.max:
-            self.gauge = 0
-
-
-class GaugeHorizontal(Gauge):
-
-    def __init__(self,screen, color, pos, max):
-        super().__init__(screen,color,pos,max)
-        self.time=0
-
-    def set_max(self,max):
-        self.max=max;
-
-    def set_time(self,time):
-        self.time=time#時間をとって
+class Gauge_Vertical(Gauge):
+    def __init__(self, screen, color, pos, max_value):
+        super().__init__(screen, color, pos, max_value)
 
     def update(self):
-        deplete_value=self.time*FPS
-        if not deplete_value == 0:
-            gauge = self.max/(self.time*FPS)
-        else:
-            gauge=0
+        # pos[1]は左上の点 [3]は縦の長さ
+        # bottom_posはゲージの一番下の座標
+        bottom_pos = self.frame_pos[1] + self.frame_pos[3]
+        vary_value = (self.frame_pos[3] * self.gauge_percentage) / 100
+        self.pos = (self.pos[0], bottom_pos - vary_value, self.pos[2], vary_value)
+        if self.gauge_percentage >= 100:
+            self.gauge_percentage = 0
 
-        self.pos = (self.pos[0], self.pos[1],self.pos[2]-gauge, self.pos[3])
-        #if self.gauge >= self.max:
-        #    self.gauge = 0
 
-        # スプライトアニメーションさせるクラス
-    def set_power(self,val):
-        self.pos = (self.pos[0], self.pos[1],val, self.pos[3])
+class Gauge_Launch_Power(Gauge_Vertical):
+    def __init__(self, screen, color, pos, max_value):
+        super().__init__(screen, color, pos, max_value)
 
-class Rocket(pygame.sprite.Sprite, GameObj):
+    def update(self):
+        self.charge_gauge()
+        super().update()
+
+    def charge_gauge(self):
+        self.gauge_percentage += 3
+
+
+class Gauge_Horizontal(Gauge):
+
+    def __init__(self, screen, color, pos, max_value):
+        super().__init__(screen, color, pos, max_value)
+
+    def update(self):
+        # pos[1]は左上の点 [3]は縦の長さ
+        # bottom_posはゲージの一番下の座標
+        #self.charge_gauge()
+        vary_value = (self.frame_pos[2] * self.gauge_percentage) / 100
+        self.pos = (self.pos[0], self.pos[1], vary_value, self.pos[3])
+        if self.gauge_percentage >= 100:
+            self.gauge_percentage = 0
+
+    def set_power(self, val):
+        self.gauge_percentage = val
+
+class GaugeTimer(Gauge_Horizontal):
+    def __init__(self, screen, color, pos, max_value):
+        super().__init__(screen, color, pos, max_value)
+        self.gauge_percentage=100
+
+    def charge_gauge(self):
+        self.gauge_percentage -= (1/FPS)*(100/self.max_value)
+
+    def update(self):
+        self.charge_gauge()
+        super().update()
+
+"""
+class GaugeTimer(Gauge):
+    def __init__(self, screen, color, pos, max_value):
+        super().__init__(screen, color, pos, max_value)
+        self.gauge_percentage=100
+
+    def update(self):
+        # pos[1]は左上の点 [3]は縦の長さ
+        # bottom_posはゲージの一番下の座標
+        vary_value = (self.frame_pos[2] * self.gauge_percentage) / 100
+        self.charge_gauge()
+        self.pos = (self.pos[0], self.pos[1], vary_value, self.pos[3])
+        if self.gauge_percentage >= 100:
+            self.gauge_percentage = 0
+
+    def charge_gauge(self):
+        self.gauge_percentage -= (1/FPS)*(100/self.max_value)
+        print(self.gauge_percentage)
+"""
+
+
+class Rocket(pygame.sprite.Sprite):
     # コンストラクタ
     def __init__(self, width_rate, height_rate, pos, angle):
         super(Rocket, self).__init__()
@@ -121,9 +182,21 @@ class Rocket(pygame.sprite.Sprite, GameObj):
 
         self.image_angle = 0
         self.clockwise = False
-        self.locked = False
+        self.locked = True
         self.image_angle = angle
-        self.movx:float=0.0
+        self.movx: float = 0.0
+
+    def reset(self):
+        self.index = 0
+        self.rect = self.image.get_rect()
+
+        self.pos = (100, 300)
+
+        self.image_angle = 0
+        self.clockwise = False
+        self.locked = True
+        self.image_angle = 300
+        self.movx: float = 0.0
 
     # 1フレーム事に実行される関数
     def update(self):
@@ -131,30 +204,29 @@ class Rocket(pygame.sprite.Sprite, GameObj):
             self.index = 0
         self.image = self.images[self.index]
         self.index += 1
-
-
         self.change_image_scale()  # 画像サイズを変更
         self.rotate_center_image()  # 画像を回転
 
     def deplete_velocity(self):
-        deplete_value:float=0
-        if self.movx>200:
-            deplete_value=self.movx/150
-        elif self.movx>150:
-            deplete_value=self.movx/240
-        elif self.movx>100:
-            deplete_value=self.movx/300
+        deplete_value: float = 0
+        if self.movx > 100:
+            deplete_value = self.movx / 150
+        elif self.movx > 75:
+            deplete_value = self.movx / 200
+        elif self.movx > 50:
+            deplete_value = self.movx / 250
+        elif self.movx > 25:
+            deplete_value = self.movx / 300
         else:
-            deplete_value =0.15
+            deplete_value = 0.08
 
-        self.movx-=deplete_value
+        self.movx -= deplete_value
 
-        if self.movx <0:
-            self.movx=0
+        if self.movx < 0:
+            self.movx = 0
 
-    def accelerate(self,val):
-        self.movx+=val
-
+    def accelerate(self, val):
+        self.movx += val
 
     # 画像のサイズを変更する関数
     def change_image_scale(self):
@@ -187,16 +259,13 @@ class Rocket(pygame.sprite.Sprite, GameObj):
         self.rect = rot_rect
 
     def calc_launch_angle(self, power=1):
+        # mainではpowerは最大100
         angle = self.image_angle + 90
         angle = angle * (math.pi / 180)
-
         sin = math.sin(angle)
         cos = math.cos(angle)
         self.movx = cos * power
         self.movy = sin * power
-        #self.dispx= self.movx
-
-
 
     def move_center(self, bg_pos):
         # 画面中央のとき
@@ -232,6 +301,7 @@ class DataReader():
         for i in data_raw:
             data_split.append(i.split(" "))
 
+        self.data = data_split
         """
         The question text is consisted following form:
             Japanese English(Strings I want players to type)
@@ -256,17 +326,13 @@ class DataReader():
         tmp = self.data[self.index]
         target = tmp[1]  # English
         loop = 0
-        print(target)
         lower = "ゃゅょっ"
-        print(target)
         lim = len(target)
         for i in range(lim):
             if skip:
                 skip = False
                 continue
-
             char = target[i]
-            print(str(i) + "回目")
             # 文字列の範囲をはみ出ないようにする
             if lim - 1 > i and target[i + 1] in lower:  # 小文字があった場合
                 tmp = target[i] + target[i + 1]
@@ -412,16 +478,29 @@ class DataReader():
                 elif char == 'ろ':
                     alphabet += "ro"
 
+                elif char == 'が':
+                    alphabet += "ga"
+                elif char == 'ぎ':
+                    alphabet += "gi"
+                elif char == 'ぐ':
+                    alphabet += "gu"
+                elif char == 'げ':
+                    alphabet += "ge"
+                elif char == 'ご':
+                    alphabet += "go"
+
+
                 elif char == 'ざ':
                     alphabet += "za"
                 elif char == 'じ':
                     alphabet += "zi"
                 elif char == 'ず':
                     alphabet += "zu"
-                elif char == "ぜ":
+                elif char == 'ぜ':
                     alphabet += "ze"
                 elif char == 'ぞ':
                     alphabet += "zo"
+
 
                 elif char == 'だ':
                     alphabet += "da"
@@ -456,6 +535,9 @@ class DataReader():
                 elif char == 'ぽ':
                     alphabet += "po"
 
+                elif char == 'ー':
+                    alphabet += "-"
+
                 else:
                     alphabet += "what"
             loop += 1
@@ -471,7 +553,7 @@ class DataReader():
         # row[0]:Japansese
         # 日本語出力
         # text.display_r(row[0],(WIDTH/2,HEIGHT/2))
-        text.display(row[0], (WIDTH / 2, HEIGHT / 2))
+        text.display(row[0], (WIDTH / 2 + 100, HEIGHT / 2 + 50))
         # text_en.display(row[1],(WIDTH/2,HEIGHT/2+50))
 
 
@@ -490,9 +572,10 @@ class SeparatedText():
         strlen = len(self.string) - 1
         for i in range(len(self.string)):
             if strlen - i < self.index:
-                self.whitetext.display(self.string[strlen - i], (WIDTH / 2 + 250 - i * 15, HEIGHT / 2 + 100))
+                self.whitetext.display(self.string[strlen - i], (WIDTH / 2 + 250 - i * 15, HEIGHT / 2 + 80))
             else:
-                self.graytext.display(self.string[strlen - i], (WIDTH / 2 + 250 - i * 15, HEIGHT / 2 + 100))
+                self.graytext.display(self.string[strlen - i], (WIDTH / 2 + 250 - i * 15, HEIGHT / 2 + 80))
+
     def get_strlen(self):
         return len(self.string)
 
@@ -505,17 +588,16 @@ class SeparatedText():
         self.inputchar = inputchar
 
     def wait_input(self):
-        if len(self.string)-1 == self.index:
-            return 0     #あってたら1　間違ってたら2 一文を打ち終わったら0
+        if len(self.string) == self.index:
+            return 0  # あってたら1　間違ってたら2 一文を打ち終わったら0
         target = self.string[self.index]
         if target == self.inputchar:
             self.index += 1
-            #print("あってる")
+            # print("あってる")
             return 1
-        elif not self.inputchar == None:
+        elif self.inputchar is not None:
+            # print("まちがってる")
             return 2
-        return -1
-
 
     def display_progress(self):
         text = Text(self.screen, (0, 255, 0), 30)

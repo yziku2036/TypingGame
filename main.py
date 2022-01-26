@@ -4,7 +4,7 @@ import pygame
 # import classes
 import sys
 import enum
-from typinglib_old import *
+from typinglib import *
 #from typinglib import *
 
 
@@ -58,17 +58,15 @@ def main():
     word_data = DataReader("words", screen)
 
     rocket = Rocket(1, 1, (100, 300), 0)
-    #ゲージの定義は色、(左上のx座標、y座標、xサイズ、yサイズ)、ゲージの分解能
-    gauge_power = Gauge_Launch_Power(screen, (255, 255, 0), (550, 50, 40, 300), 300)
+    #ゲージの定義は色、(左上のx座標、y座標、xサイズ、yサイズ)、ゲージの値の最大値(見た目に影響はなく、ret_powerの戻り値にのみ影響)
+    gauge_power = Gauge_Launch_Power(screen, (255, 255, 0), (550, 50, 40, 300), 100)
    # gauge_timer = GaugeHorizontal(screen, (255, 0, 128), (20, 40, 300, 30), 200)
-    gauge_timer= GaugeTimer(screen,(255,0,128),(20,40,300,30))
-    gauge_vector = Gauge_Horizontal(screen, (0, 128, 128), (20, 110, 300, 30))
+    gauge_timer= GaugeTimer(screen,(255,0,128),(20,40,300,30),20)
+    gauge_vector = Gauge_Horizontal(screen, (0, 128, 128), (20, 110, 300, 30),100)
 
-    timer = 0
+    time_remaining = 0
 
-    allvar = []
-    allvar.append(rocket)
-    allvar.append(gauge_power)
+    hoge=Gauge(screen,(1,2,3),(4,1,2,3))
 
     my_group = pygame.sprite.Group(rocket)
 
@@ -82,8 +80,8 @@ def main():
         screen.blit(bg, [game_state_now.bg_pos[0], game_state_now.bg_pos[1] - HEIGHT])
         screen.blit(bg, [game_state_now.bg_pos[0] - WIDTH, game_state_now.bg_pos[1] - HEIGHT])
         screen.blit(bg, game_state_now.bg_pos)
-
-        val = gauge_power.ret_power()
+        #最大100
+        rocket_power = gauge_power.ret_power()
 
         if state_now == Process_State.TITLE:
             texts.text_title.display("ROCKETYPING",(WIDTH/2-100,HEIGHT/2-100))
@@ -96,19 +94,20 @@ def main():
             texts.text_light_green.display("set the power",(WIDTH/2-220,HEIGHT/2-50))
             gauge_power.update()
             gauge_power.display()
-            rocket.calc_launch_angle(val)
+            rocket.calc_launch_angle(rocket_power)
 
         elif state_now == Process_State.FLYING:
             if deplete_start_timer>0:
-                print(deplete_start_timer)
                 deplete_start_timer-=1
             else:
                 rocket.deplete_velocity()
             gauge_power.display_fading()
             gauge_timer.update()
             gauge_timer.display()
-            gauge_vector.display()
             gauge_vector.set_power(rocket.movx)
+            gauge_vector.update()
+            gauge_vector.display()
+
             if game_state_now.solved:#1文打ち終わったら
                 word_data.translation()
                 question = SeparatedText(word_data.return_question(), screen)
@@ -136,24 +135,24 @@ def main():
             elif question.wait_input()==0:
                 game_state_now.solved = True# k
             global_k = None
-            score=math.floor(game_state_now.score)
+            game_state_now.score=math.floor(game_state_now.score)
             texts.text_orange.display("Score:"+str(game_state_now.score),(WIDTH/2+30,100))
             texts.text_pink.display("Combo:"+str(game_state_now.combo),(WIDTH/2+30,125))
             texts.text_light_blue.display("Multiplier:"+str(round(game_state_now.score_mul,3)),(WIDTH/2+30,150))
 
             question.display_process()
 
-            texts.text_vector.display("Flight Time:" + str(math.floor(timer)), (15, 0))
+            texts.text_vector.display("Flight Time:" + str(math.floor(time_remaining)), (15, 0))
             texts.text_vector.display("Velocity:" + str(math.floor(rocket.movx)), (15, 70))
             game_state_now.dist_moved += rocket.movx
-            timer -= 1 / FPS
+            time_remaining -= 1 / FPS
 
             rocket.move_center(game_state_now.bg_pos)
             if game_state_now.bg_pos[0] > WIDTH:
                 game_state_now.bg_pos[0] = 0
             if game_state_now.bg_pos[1] < 0:
                 game_state_now.bg_pos[1] = HEIGHT
-            if timer < 0:
+            if time_remaining < 0:
                 state_now = Process_State.FALLING
 
         elif state_now == Process_State.FALLING:
@@ -164,7 +163,6 @@ def main():
             texts.text_white.display("Press [Enter] to restart",(WIDTH/2-140,HEIGHT/2+110))
             texts.text_white.display("Press [ESC] to quit",(WIDTH/2-140,HEIGHT/2+140))
             texts.text_white.display("Your Typing Speed:"+str(round(game_state_now.typed/game_state_now.limit_time,3))+"/s",(WIDTH/2-140,HEIGHT/2+165))
-            print(game_state_now.typed)
 
         for event in pygame.event.get():
             # ESCキーが押されたら終了
@@ -200,17 +198,20 @@ def main():
                         state_now = Process_State.LAUNCHING_2
                     elif state_now == Process_State.LAUNCHING_2:
                         #ロケットのパワーを確定した瞬間
+                        #ゲームの状態を「飛行状態」に
                         state_now = Process_State.FLYING
+                        #時間制限を計算し確定させ、ゲーム本体にわたす
                         game_state_now.limit_time=calc_limit_time(rocket.movy)
-                        timer = calc_limit_time(rocket.movy)
-                        # gauge_vector.set_gauge_max(rocket.movx*2)
-                        gauge_timer.set_limit_time(timer)
+                        #残り時間(可変)の変数を作成
+                        time_remaining = calc_limit_time(rocket.movy)
+                        #タイマーゲージに時間を渡す
+                        gauge_timer.set_max_value(game_state_now.limit_time)
+                        #ロケットの速度減少が始まる時間を計算
                         deplete_start_timer=rocket.movx*FPS/16
-                        #gauge_timer.set_gauge_max(timer)
                     # elif state_now == state.FLYING:
                 if k is pygame.K_LEFT:
                     rocket.image_angle = 0
-                    rocket.calc_launch_angle(val)
+                    rocket.calc_launch_angle(rocket_power)
 
                     # 背景色で塗りつぶし
 
