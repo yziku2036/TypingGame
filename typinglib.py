@@ -1,11 +1,13 @@
 import pygame
 import math
 import random
+from main import Game_System
 from abc import ABCMeta, abstractmethod
 
-WINDOW_SIZE = WIDTH, HEIGHT = 600, 400  # ウインドウサイズ
+
+WINDOW_SIZE = Game_System.WIDTH, HEIGHT = 600, 400  # ウインドウサイズ
 BACKGROUND_COLOR = (0, 0, 0)  # 背景色(黒)
-FPS = 30  # フレームレート
+Game_System.FPS = 30  # フレームレート
 
 
 def draw_rect_alpha(surface, color, rect, frame=0):
@@ -128,7 +130,7 @@ class Gauge_Timer(Gauge_Horizontal):
         self.gauge_percentage = 100
 
     def change_gauge(self):
-        self.gauge_percentage -= (1 / FPS) * (100 / self.max_value)
+        self.gauge_percentage -= (1 / Game_System.FPS) * (100 / self.max_value)
 
     def update(self):
         self.change_gauge()
@@ -249,12 +251,12 @@ class Rocket(pygame.sprite.Sprite):
         self.speed_x = cos * power
         self.speed_y = sin * power
 
-    #ロケットを動かすのに用いる
-    def move(self, bg_pos):
+    #背景を動かすのに用いる
+    def move_background(self, bg_pos):
         # 画面中央のとき
         moved_x = self.pos[0]
         moved_y = self.pos[1]
-        if self.pos[0] < WIDTH / 2:
+        if self.pos[0] < Game_System.WIDTH / 2:
             if self.speed_x != 0:
                 moved_x += self.speed_x / 15
         else:
@@ -267,6 +269,10 @@ class Rocket(pygame.sprite.Sprite):
             bg_pos[1] -= self.speed_y / 15
         self.pos = (moved_x, moved_y)
 
+        if bg_pos[0] > Game_System.WIDTH:
+            bg_pos[0] = 0
+        if bg_pos[1] < 0:
+            bg_pos[1] = HEIGHT
 
 class DataReader:
     def __init__(self, name, screen):
@@ -535,9 +541,9 @@ class DataReader:
 
         # row[0]:Japansese
         # 日本語出力
-        # text.display_r(row[0],(WIDTH/2,HEIGHT/2))
-        text.display(row[0], (WIDTH / 2 + 100, HEIGHT / 2 + 50))
-        # text_en.display(row[1],(WIDTH/2,HEIGHT/2+50))
+        # text.display_r(row[0],(Game_System.WIDTH/2,HEIGHT/2))
+        text.display(row[0], (Game_System.WIDTH / 2 + 100, HEIGHT / 2 + 50))
+        # text_en.display(row[1],(Game_System.WIDTH/2,HEIGHT/2+50))
 
 
 class SeparatedText:
@@ -553,9 +559,9 @@ class SeparatedText:
         strlen = len(self.string) - 1
         for i in range(len(self.string)):
             if strlen - i < self.index:
-                self.whitetext.display(self.string[strlen - i], (WIDTH / 2 + 250 - i * 15, HEIGHT / 2 + 80))
+                self.whitetext.display(self.string[strlen - i], (Game_System.WIDTH / 2 + 250 - i * 15, HEIGHT / 2 + 80))
             else:
-                self.graytext.display(self.string[strlen - i], (WIDTH / 2 + 250 - i * 15, HEIGHT / 2 + 80))
+                self.graytext.display(self.string[strlen - i], (Game_System.WIDTH / 2 + 250 - i * 15, HEIGHT / 2 + 80))
 
     def get_strlen(self):
         return len(self.string)
@@ -582,4 +588,4 @@ class SeparatedText:
 
     def display_progress(self):
         text = Text(self.screen, (0, 255, 0), 30)
-        text.display(self.string, (WIDTH / 2, HEIGHT / 2 + 100))
+        text.display(self.string, (Game_System.WIDTH / 2, HEIGHT / 2 + 100))
