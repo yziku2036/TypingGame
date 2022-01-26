@@ -53,8 +53,6 @@ class Gauge(metaclass=ABCMeta):
         self.screen = screen
         self.gauge_value = 0.0
         self.gauge_percentage = 0.0
-        self.movx = 0
-        self.movy = 0
         self.alpha = 255
         self.gauge_length = pos[3]
         self.max_value = max_value
@@ -90,13 +88,24 @@ class Gauge_Vertical(Gauge):
         super().__init__(screen, color, pos, max_value)
 
     def update(self):
-        # pos[1]は左上の点 [3]は縦の長さ
+        # pos[1]は左上の点 pos[3]は縦の長さ
         # bottom_posはゲージの一番下の座標
         bottom_pos = self.frame_pos[1] + self.frame_pos[3]
         vary_value = (self.frame_pos[3] * self.gauge_percentage) / 100
         self.pos = (self.pos[0], bottom_pos - vary_value, self.pos[2], vary_value)
-        if self.gauge_percentage >= 100:
-            self.gauge_percentage = 0
+
+
+class Gauge_Horizontal(Gauge):
+    def __init__(self, screen, color, pos, max_value):
+        super().__init__(screen, color, pos, max_value)
+
+    def update(self):
+        # pos[0]は左上の点のx座標 pos[2]はゲージの横の長さ
+        vary_value = (self.frame_pos[2] * self.gauge_percentage) / 100
+        self.pos = (self.pos[0], self.pos[1], vary_value, self.pos[3])
+
+    def set_power(self, val):
+        self.gauge_percentage = val
 
 
 class Gauge_Launch_Power(Gauge_Vertical):
@@ -105,61 +114,29 @@ class Gauge_Launch_Power(Gauge_Vertical):
 
     def update(self):
         self.charge_gauge()
+        if self.gauge_percentage >= 100:
+            self.gauge_percentage = 0
         super().update()
+
 
     def charge_gauge(self):
         self.gauge_percentage += 3
 
 
-class Gauge_Horizontal(Gauge):
-
-    def __init__(self, screen, color, pos, max_value):
-        super().__init__(screen, color, pos, max_value)
-
-    def update(self):
-        # pos[1]は左上の点 [3]は縦の長さ
-        # bottom_posはゲージの一番下の座標
-        #self.charge_gauge()
-        vary_value = (self.frame_pos[2] * self.gauge_percentage) / 100
-        self.pos = (self.pos[0], self.pos[1], vary_value, self.pos[3])
-        if self.gauge_percentage >= 100:
-            self.gauge_percentage = 0
-
-    def set_power(self, val):
-        self.gauge_percentage = val
-
 class GaugeTimer(Gauge_Horizontal):
     def __init__(self, screen, color, pos, max_value):
         super().__init__(screen, color, pos, max_value)
-        self.gauge_percentage=100
+        self.gauge_percentage = 100
 
     def charge_gauge(self):
-        self.gauge_percentage -= (1/FPS)*(100/self.max_value)
+        self.gauge_percentage -= (1 / FPS) * (100 / self.max_value)
 
     def update(self):
         self.charge_gauge()
         super().update()
 
-"""
-class GaugeTimer(Gauge):
-    def __init__(self, screen, color, pos, max_value):
-        super().__init__(screen, color, pos, max_value)
+    def reset(self):
         self.gauge_percentage=100
-
-    def update(self):
-        # pos[1]は左上の点 [3]は縦の長さ
-        # bottom_posはゲージの一番下の座標
-        vary_value = (self.frame_pos[2] * self.gauge_percentage) / 100
-        self.charge_gauge()
-        self.pos = (self.pos[0], self.pos[1], vary_value, self.pos[3])
-        if self.gauge_percentage >= 100:
-            self.gauge_percentage = 0
-
-    def charge_gauge(self):
-        self.gauge_percentage -= (1/FPS)*(100/self.max_value)
-        print(self.gauge_percentage)
-"""
-
 
 class Rocket(pygame.sprite.Sprite):
     # コンストラクタ
@@ -184,7 +161,8 @@ class Rocket(pygame.sprite.Sprite):
         self.clockwise = False
         self.locked = True
         self.image_angle = angle
-        self.movx: float = 0.0
+        self.speed_x: float = 0.0
+        self.speed_y: float = 0.0
 
     def reset(self):
         self.index = 0
@@ -195,8 +173,8 @@ class Rocket(pygame.sprite.Sprite):
         self.image_angle = 0
         self.clockwise = False
         self.locked = True
-        self.image_angle = 300
-        self.movx: float = 0.0
+        self.speed_x: float = 0.0
+
 
     # 1フレーム事に実行される関数
     def update(self):
@@ -204,29 +182,30 @@ class Rocket(pygame.sprite.Sprite):
             self.index = 0
         self.image = self.images[self.index]
         self.index += 1
-        self.change_image_scale()  # 画像サイズを変更
-        self.rotate_center_image()  # 画像を回転
+          # 画像サイズを変更 # 画像を回転
+        #if not self.locked:
+        self.change_image_scale()
+        self.rotate_center_image()
 
     def deplete_velocity(self):
-        deplete_value: float = 0
-        if self.movx > 100:
-            deplete_value = self.movx / 150
-        elif self.movx > 75:
-            deplete_value = self.movx / 200
-        elif self.movx > 50:
-            deplete_value = self.movx / 250
-        elif self.movx > 25:
-            deplete_value = self.movx / 300
+        if self.speed_x > 100:
+            deplete_value = self.speed_x / 150
+        elif self.speed_x > 75:
+            deplete_value = self.speed_x / 200
+        elif self.speed_x > 50:
+            deplete_value = self.speed_x / 250
+        elif self.speed_x > 25:
+            deplete_value = self.speed_x / 300
         else:
             deplete_value = 0.08
 
-        self.movx -= deplete_value
+        self.speed_x -= deplete_value
 
-        if self.movx < 0:
-            self.movx = 0
+        if self.speed_x < 0:
+            self.speed_x = 0
 
     def accelerate(self, val):
-        self.movx += val
+        self.speed_x += val
 
     # 画像のサイズを変更する関数
     def change_image_scale(self):
@@ -264,28 +243,28 @@ class Rocket(pygame.sprite.Sprite):
         angle = angle * (math.pi / 180)
         sin = math.sin(angle)
         cos = math.cos(angle)
-        self.movx = cos * power
-        self.movy = sin * power
+        self.speed_x = cos * power
+        self.speed_y = sin * power
 
     def move_center(self, bg_pos):
         # 画面中央のとき
         moved_x = self.pos[0]
         moved_y = self.pos[1]
         if self.pos[0] < WIDTH / 2:
-            if self.movx != 0:
-                moved_x += self.movx / 15
+            if self.speed_x != 0:
+                moved_x += self.speed_x / 15
         else:
-            bg_pos[0] += self.movx / 15
+            bg_pos[0] += self.speed_x / 15
 
         if self.pos[1] > HEIGHT / 2:
-            if self.movy != 0:
-                moved_y -= self.movy / 15
+            if self.speed_y != 0:
+                moved_y -= self.speed_y / 15
         else:
-            bg_pos[1] -= self.movy / 15
+            bg_pos[1] -= self.speed_y / 15
         self.pos = (moved_x, moved_y)
 
 
-class DataReader():
+class DataReader:
     def __init__(self, name, screen):
         self.name = name
         self.screen = screen
@@ -557,16 +536,14 @@ class DataReader():
         # text_en.display(row[1],(WIDTH/2,HEIGHT/2+50))
 
 
-# def update(self):
-
-
-class SeparatedText():
+class SeparatedText:
     def __init__(self, string, screen):
         self.screen = screen
         self.graytext = Text(self.screen, (100, 100, 100), 30)
         self.whitetext = Text(self.screen, (255, 255, 255), 30)
         self.index = 0
         self.string = string
+        self.inputchar = None
 
     def display_process(self):
         strlen = len(self.string) - 1
@@ -580,7 +557,7 @@ class SeparatedText():
         return len(self.string)
 
     def load_input(self, inputchar):
-        if not inputchar == None:
+        if inputchar is not None:
             inputchar = pygame.key.name(inputchar)
         else:
             inputchar = None
