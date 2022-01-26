@@ -58,13 +58,16 @@ def main():
 
     word_data = DataReader("words", screen)
 
-    rocket = Rocket(13, 12, (100, 300), 0)
+    rocket = Rocket(1, 1, (100, 300), 0)
     # ゲージの定義は色、(左上のx座標、y座標、xサイズ、yサイズ)、ゲージの値の最大値(見た目に影響はなく、ret_powerの戻り値にのみ影響)
     gauge_power = Gauge_Launch_Power(screen, (255, 255, 0), (550, 50, 40, 300), 100)
+    # gauge_timer = GaugeHorizontal(screen, (255, 0, 128), (20, 40, 300, 30), 200)
     gauge_timer = GaugeTimer(screen, (255, 0, 128), (20, 40, 300, 30), 20)
     gauge_vector = Gauge_Horizontal(screen, (0, 128, 128), (20, 110, 300, 30), 100)
 
     time_remaining = 0
+
+    hoge = Gauge(screen, (1, 2, 3), (4, 1, 2, 3))
 
     my_group = pygame.sprite.Group(rocket)
 
@@ -182,7 +185,7 @@ def main():
                 elif k is pygame.K_RETURN:
                     if state_now == Process_State.TITLE:
                         #タイトルから移行する場面
-                        rocket.rotate_mode_change()
+                        rocket.locked = False
                         gauge_timer.reset()
                         state_now = Process_State.LAUNCHING_1
                     # ゲームリセット時
@@ -190,11 +193,13 @@ def main():
                         state_now = Process_State.TITLE
                         rocket.reset()
                         gauge_timer.reset()
+                        #rocket = Rocket(1, 1, (100, 300), 0)
                         game_state_now.init()
                 elif k is pygame.K_SPACE:
                     # ロケットの向きを固定する瞬間
                     if state_now == Process_State.LAUNCHING_1:
-                        rocket.rotate_mode_change()
+                        rocket = Rocket(1, 1, (100, 300), rocket.image_angle)
+                        rocket.locked = True
                         my_group = pygame.sprite.Group(rocket)
                         gauge_power.display()
                         state_now = Process_State.LAUNCHING_2
