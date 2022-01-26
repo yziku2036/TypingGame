@@ -118,7 +118,6 @@ class Gauge_Launch_Power(Gauge_Vertical):
             self.gauge_percentage = 0
         super().update()
 
-
     def charge_gauge(self):
         self.gauge_percentage += 3
 
@@ -136,7 +135,8 @@ class GaugeTimer(Gauge_Horizontal):
         super().update()
 
     def reset(self):
-        self.gauge_percentage=100
+        self.gauge_percentage = 100
+
 
 class Rocket(pygame.sprite.Sprite):
     # コンストラクタ
@@ -175,17 +175,15 @@ class Rocket(pygame.sprite.Sprite):
         self.locked = True
         self.speed_x: float = 0.0
 
-
     # 1フレーム事に実行される関数
     def update(self):
         if self.index >= len(self.images):
             self.index = 0
         self.image = self.images[self.index]
         self.index += 1
-          # 画像サイズを変更 # 画像を回転
-        #if not self.locked:
-        self.change_image_scale()
-        self.rotate_center_image()
+        self.display()
+        if not self.locked:
+            self.rotate_center_image()
 
     def deplete_velocity(self):
         if self.speed_x > 100:
@@ -207,11 +205,19 @@ class Rocket(pygame.sprite.Sprite):
     def accelerate(self, val):
         self.speed_x += val
 
-    # 画像のサイズを変更する関数
-    def change_image_scale(self):
-        x_size = self.image.get_width() * self.width_rate
-        y_size = self.image.get_height() * self.height_rate
-        self.image = pygame.transform.scale(self.image, (int(x_size), int(y_size)))
+    def rotate_mode_change(self):
+        now_mode = self.locked
+        print(now_mode)
+        self.locked = not now_mode
+        print(self.locked)
+    def display(self):
+        rot_image = pygame.transform.rotate(self.image, self.image_angle)
+        rot_rect = rot_image.get_rect()
+        rot_rect.center = self.pos  # 中心位置を設定(移動)
+
+        # 結果を格納
+        self.image = rot_image
+        self.rect = rot_rect
 
     # 画像の中心で回転させる関数
     def rotate_center_image(self):
@@ -229,13 +235,6 @@ class Rocket(pygame.sprite.Sprite):
                 self.clockwise = False
                 self.image_angle = -90
         # 画像を回転
-        rot_image = pygame.transform.rotate(self.image, self.image_angle)
-        rot_rect = rot_image.get_rect()
-        rot_rect.center = self.pos  # 中心位置を設定(移動)
-
-        # 結果を格納
-        self.image = rot_image
-        self.rect = rot_rect
 
     def calc_launch_angle(self, power=1):
         # mainではpowerは最大100
