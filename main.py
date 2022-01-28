@@ -149,7 +149,6 @@ def main():
                         state_now = Process_State.TITLE
                         rocket.reset()
                         gauge_timer.reset()
-                        # rocket = Rocket(1, 1, (100, 300), 0)
                         game_state_now.init()
                 elif k is pygame.K_SPACE:
                     # ロケットの向きを固定する瞬間
@@ -171,7 +170,6 @@ def main():
                         gauge_timer.set_max_value(game_state_now.limit_time)
                         # ロケットの速度減少が始まる時間を計算
                         game_state_now.deplete_start_timer = rocket.speed_x * Game_System.FPS / 16
-                    # elif state_now == state.FLYING:
                 if k is pygame.K_LEFT:
                     rocket.image_angle = 0
                     rocket.calc_launch_angle(rocket_power)

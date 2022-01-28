@@ -43,7 +43,7 @@ class Game_States_Init:
 
     def init(self):
         self.__init__()
-        print("init called")
+
 
 class Text_Colored_Init:
     def __init__(self, screen):
@@ -68,7 +68,6 @@ class Game_System:
     FPS = 30
     WINDOW_SIZE = WIDTH, HEIGHT = 600, 400  # ウインドウサイズ
     BACKGROUND_COLOR = (0, 0, 0)  # 背景色(黒)
-
 
 
 class Text:
@@ -345,16 +344,12 @@ class DataReader:
         alphabet = ""
         skip = False
         reroll = True
-        index_tmp=0
+        index_tmp = 0
         while reroll or self.length < 2:
             index_tmp = random.randint(0, self.length - 1)
             if index_tmp is not self.index:
                 reroll = False
-
         self.index = index_tmp
-
-        # self.index=0
-
         tmp = self.data[self.index]
         target = tmp[1]  # English
         loop = 0
@@ -521,7 +516,6 @@ class DataReader:
                 elif char == 'ご':
                     alphabet += "go"
 
-
                 elif char == 'ざ':
                     alphabet += "za"
                 elif char == 'じ':
@@ -532,7 +526,6 @@ class DataReader:
                     alphabet += "ze"
                 elif char == 'ぞ':
                     alphabet += "zo"
-
 
                 elif char == 'だ':
                     alphabet += "da"
@@ -618,8 +611,6 @@ class SeparatedText:
         target = self.string[self.index]
         if target == self.inputchar:
             self.index += 1
-            # print("あってる")
             return 1
         elif self.inputchar is not None:
-            # print("まちがってる")
             return 2
