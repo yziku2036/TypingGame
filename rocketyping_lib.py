@@ -42,8 +42,8 @@ class Game_States_Init:
         self.limit_time = 0
 
     def init(self):
-        super().__init__()
-
+        self.__init__()
+        print("init called")
 
 class Text_Colored_Init:
     def __init__(self, screen):

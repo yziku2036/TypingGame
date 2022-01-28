@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from typinglib import *
+from rocketyping_lib import *
 
 
 def main():
