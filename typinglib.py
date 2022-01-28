@@ -1,13 +1,8 @@
 import pygame
 import math
 import random
-from main import Game_System
+import enum
 from abc import ABCMeta, abstractmethod
-
-
-WINDOW_SIZE = Game_System.WIDTH, HEIGHT = 600, 400  # ウインドウサイズ
-BACKGROUND_COLOR = (0, 0, 0)  # 背景色(黒)
-Game_System.FPS = 30  # フレームレート
 
 
 def draw_rect_alpha(surface, color, rect, frame=0):
@@ -31,6 +26,49 @@ def calc_limit_time(time):
     elif time < 20:
         time = 20
     return time
+
+
+class Game_States_Init:
+    def __init__(self):
+        self.solved = True
+        self.score = 0
+        self.combo = 0
+        self.dist_moved = 0
+        self.bg_pos = [0, 0]
+        self.staging_const = 19
+        self.score_mul = 0
+        self.deplete_start_timer = 0
+        self.typed = 0
+        self.limit_time = 0
+
+    def init(self):
+        super().__init__()
+
+
+class Text_Colored_Init:
+    def __init__(self, screen):
+        self.text_title = Text(screen, (255, 255, 0), 50)
+        self.text_vector = Text(screen, (255, 200, 150), 30)
+        self.text_orange = Text(screen, (255, 128, 0), 30)
+        self.text_pink = Text(screen, (255, 128, 128), 30)
+        self.text_light_green = Text(screen, (0, 255, 128), 30)
+        self.text_light_blue = Text(screen, (200, 200, 255), 30)
+        self.text_white = Text(screen, (255, 255, 255), 25)
+
+
+class Process_State(enum.Enum):
+    TITLE = enum.auto()
+    LAUNCHING_1 = enum.auto()
+    LAUNCHING_2 = enum.auto()
+    FLYING = enum.auto()
+    FALLING = enum.auto()
+
+
+class Game_System:
+    FPS = 30
+    WINDOW_SIZE = WIDTH, HEIGHT = 600, 400  # ウインドウサイズ
+    BACKGROUND_COLOR = (0, 0, 0)  # 背景色(黒)
+
 
 
 class Text:
@@ -161,9 +199,8 @@ class Rocket(pygame.sprite.Sprite):
         self.speed_x: float = 0.0
         self.speed_y: float = 0.0
         # インスタンス変数から縮尺を変更
-        #for num in range(0, 5):
-         #   print(num)
-            #self.images[num] = self.change_image_scale(self.images[num],width_rate,height_rate)
+        # for num in range(0, 5):
+        #   self.images[num] = self.change_image_scale(self.images[num],width_rate,height_rate)
 
     def reset(self):
         self.index = 0
@@ -213,7 +250,8 @@ class Rocket(pygame.sprite.Sprite):
         self.speed_x += val
 
         # 画像のサイズを変更する関数
-    def change_image_scale(self, image,width_rate,height_rate):
+
+    def change_image_scale(self, image, width_rate, height_rate):
         x_size = image.get_width() * width_rate
         y_size = image.get_height() * height_rate
         changed_image = pygame.transform.scale(self.image, (int(x_size), int(y_size)))
@@ -221,9 +259,7 @@ class Rocket(pygame.sprite.Sprite):
 
     def rotate_mode_change(self):
         now_mode = self.locked
-        print(now_mode)
         self.locked = not now_mode
-        print(self.locked)
 
     # 画像の中心で回転させる関数
     def rotate_image(self):
@@ -251,35 +287,36 @@ class Rocket(pygame.sprite.Sprite):
         self.speed_x = cos * power
         self.speed_y = sin * power
 
-    #背景を動かすのに用いる
+    # 背景を動かすのに用いる
     def move_background(self, bg_pos):
         # 画面中央のとき
         moved_x = self.pos[0]
         moved_y = self.pos[1]
         if self.pos[0] < Game_System.WIDTH / 2:
             if self.speed_x != 0:
-                moved_x += self.speed_x / 15
+                moved_x += self.speed_x / 5
         else:
-            bg_pos[0] += self.speed_x / 15
+            bg_pos[0] += self.speed_x / 5
 
-        if self.pos[1] > HEIGHT / 2:
+        if self.pos[1] > Game_System.HEIGHT / 2:
             if self.speed_y != 0:
-                moved_y -= self.speed_y / 15
+                moved_y -= self.speed_y / 5
         else:
-            bg_pos[1] -= self.speed_y / 15
+            bg_pos[1] -= self.speed_y / 5
         self.pos = (moved_x, moved_y)
 
         if bg_pos[0] > Game_System.WIDTH:
             bg_pos[0] = 0
         if bg_pos[1] < 0:
-            bg_pos[1] = HEIGHT
+            bg_pos[1] = Game_System.HEIGHT
+
 
 class DataReader:
     def __init__(self, name, screen):
         self.name = name
         self.screen = screen
         self.index = 0
-        self.target = "this sentence must not be displayed"
+        self.type_target = "this sentence must not be displayed"
 
         file_name = "words/" + self.name + ".txt"
         f = open(file_name, 'r', encoding='shift-jis')
@@ -302,13 +339,19 @@ class DataReader:
         """
 
     def return_question(self):
-
-        return self.target
+        return self.type_target
 
     def translation(self):
         alphabet = ""
         skip = False
-        self.index = random.randint(0, self.length - 1)
+        reroll = True
+        index_tmp=0
+        while reroll or self.length < 2:
+            index_tmp = random.randint(0, self.length - 1)
+            if index_tmp is not self.index:
+                reroll = False
+
+        self.index = index_tmp
 
         # self.index=0
 
@@ -530,20 +573,14 @@ class DataReader:
                 else:
                     alphabet += "what"
             loop += 1
-        print(alphabet)
-        self.target = alphabet
+        self.type_target = alphabet
 
     def display_question(self):
-        # index=random.randint(0,self.length-1)
         row = self.data[self.index]
         text = Text(self.screen, (255, 0, 0), 30)
-        # text_en=Text(self.screen,(255,0,0),30)
-
         # row[0]:Japansese
         # 日本語出力
-        # text.display_r(row[0],(Game_System.WIDTH/2,HEIGHT/2))
-        text.display(row[0], (Game_System.WIDTH / 2 + 100, HEIGHT / 2 + 50))
-        # text_en.display(row[1],(Game_System.WIDTH/2,HEIGHT/2+50))
+        text.display(row[0], (Game_System.WIDTH / 2 + 100, Game_System.HEIGHT / 2 + 50))
 
 
 class SeparatedText:
@@ -555,26 +592,27 @@ class SeparatedText:
         self.string = string
         self.inputchar = None
 
-    def display_process(self):
+    def display(self):
         strlen = len(self.string) - 1
         for i in range(len(self.string)):
             if strlen - i < self.index:
-                self.whitetext.display(self.string[strlen - i], (Game_System.WIDTH / 2 + 250 - i * 15, HEIGHT / 2 + 80))
+                self.whitetext.display(self.string[strlen - i],
+                                       (Game_System.WIDTH / 2 + 250 - i * 15, Game_System.HEIGHT / 2 + 80))
             else:
-                self.graytext.display(self.string[strlen - i], (Game_System.WIDTH / 2 + 250 - i * 15, HEIGHT / 2 + 80))
+                self.graytext.display(self.string[strlen - i],
+                                      (Game_System.WIDTH / 2 + 250 - i * 15, Game_System.HEIGHT / 2 + 80))
 
     def get_strlen(self):
         return len(self.string)
 
-    def load_input(self, inputchar):
-        if inputchar is not None:
-            inputchar = pygame.key.name(inputchar)
+    def load_input(self, sys_key_input):
+        if sys_key_input is not None:
+            sys_key_input = pygame.key.name(sys_key_input)
         else:
-            inputchar = None
+            sys_key_input = None
+        self.inputchar = sys_key_input
 
-        self.inputchar = inputchar
-
-    def wait_input(self):
+    def judge_input(self):
         if len(self.string) == self.index:
             return 0  # あってたら1　間違ってたら2 一文を打ち終わったら0
         target = self.string[self.index]
@@ -585,7 +623,3 @@ class SeparatedText:
         elif self.inputchar is not None:
             # print("まちがってる")
             return 2
-
-    def display_progress(self):
-        text = Text(self.screen, (0, 255, 0), 30)
-        text.display(self.string, (Game_System.WIDTH / 2, HEIGHT / 2 + 100))

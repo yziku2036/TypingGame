@@ -1,50 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import enum
 from typinglib import *
-
-
-class Game_States_Init():
-    def __init__(self):
-        self.solved = True
-        self.score = 0
-        self.combo = 0
-        self.dist_moved = 0
-        self.bg_pos = [0, 0]
-        self.staging_const = 19
-        self.score_mul = 0
-        self.deplete_start_timer = 0
-        self.typed = 0
-        self.limit_time = 0
-
-    def init(self):
-        super().__init__()
-
-
-class Text_Colored_Init():
-    def __init__(self, screen):
-        self.text_title = Text(screen, (255, 255, 0), 50)
-        self.text_vector = Text(screen, (255, 200, 150), 30)
-        self.text_orange = Text(screen, (255, 128, 0), 30)
-        self.text_pink = Text(screen, (255, 128, 128), 30)
-        self.text_light_green = Text(screen, (0, 255, 128), 30)
-        self.text_light_blue = Text(screen, (200, 200, 255), 30)
-        self.text_white = Text(screen, (255, 255, 255), 25)
-
-
-class Process_State(enum.Enum):
-    TITLE = enum.auto()
-    LAUNCHING_1 = enum.auto()
-    LAUNCHING_2 = enum.auto()
-    FLYING = enum.auto()
-    FALLING = enum.auto()
-
-
-class Game_System():
-    FPS = 30
-    WINDOW_SIZE = WIDTH, HEIGHT = 600, 400  # ウインドウサイズ
-    BACKGROUND_COLOR = (0, 0, 0)  # 背景色(黒)
 
 
 def main():
@@ -52,7 +9,7 @@ def main():
     game_state_now = Game_States_Init()
     pygame.init()
     state_now = Process_State.TITLE
-    screen = pygame.display.set_mode(WINDOW_SIZE)
+    screen = pygame.display.set_mode(Game_System.WINDOW_SIZE)
     pygame.display.set_caption("RockeTyping")
     bg = pygame.image.load("images/background.png")
     texts = Text_Colored_Init(screen)
@@ -61,40 +18,39 @@ def main():
 
     rocket = Rocket(1, 1, (100, 300), 0)
     # ゲージの定義は色、(左上のx座標、y座標、xサイズ、yサイズ)、ゲージの値の最大値(見た目に影響はなく、ret_powerの戻り値にのみ影響)
-    gauge_power = Gauge_Launch_Power(screen, (255, 255, 0), (550, 50, 40, 300), 100)
-    # gauge_timer = GaugeHorizontal(screen, (255, 0, 128), (20, 40, 300, 30), 200)
+    gauge_power = Gauge_Launch_Power(screen, (255, 255, 0), (550, 50, 40, 300), 200)
     gauge_timer = Gauge_Timer(screen, (255, 0, 128), (20, 40, 300, 30), 20)
     gauge_vector = Gauge_Horizontal(screen, (0, 128, 128), (20, 110, 300, 30), 100)
 
     time_remaining = 0
 
-    hoge = Gauge(screen, (1, 2, 3), (4, 1, 2, 3))
-
     my_group = pygame.sprite.Group(rocket)
 
-    screen.fill(BACKGROUND_COLOR)  # 背景色を設定
+    screen.fill(Game_System.BACKGROUND_COLOR)  # 背景色を設定
     screen.blit(bg, game_state_now.bg_pos)
     clock = pygame.time.Clock()  # クロックを開始
 
     while True:
-        print(game_state_now.bg_pos)
-        screen.fill(BACKGROUND_COLOR)
+        screen.fill(Game_System.BACKGROUND_COLOR)
         screen.blit(bg, [game_state_now.bg_pos[0] - Game_System.WIDTH, game_state_now.bg_pos[1]])
-        screen.blit(bg, [game_state_now.bg_pos[0], game_state_now.bg_pos[1] - HEIGHT])
-        screen.blit(bg, [game_state_now.bg_pos[0] - Game_System.WIDTH, game_state_now.bg_pos[1] - HEIGHT])
+        screen.blit(bg, [game_state_now.bg_pos[0], game_state_now.bg_pos[1] - Game_System.HEIGHT])
+        screen.blit(bg, [game_state_now.bg_pos[0] - Game_System.WIDTH, game_state_now.bg_pos[1] - Game_System.HEIGHT])
         screen.blit(bg, game_state_now.bg_pos)
         # 最大100
         rocket_power = gauge_power.ret_power()
 
         if state_now == Process_State.TITLE:
-            texts.text_title.display("ROCKETYPING", (Game_System.WIDTH / 2 - 100, HEIGHT / 2 - 100))
-            texts.text_title.display("Enter To Start", (Game_System.WIDTH / 2 - 100, HEIGHT / 2 + 100))
+            texts.text_title.display("ROCKETYPING", (Game_System.WIDTH / 2 - 100, Game_System.HEIGHT / 2 - 100))
+            texts.text_title.display("Enter To Start", (Game_System.WIDTH / 2 - 100, Game_System.HEIGHT / 2 + 100))
         if state_now == Process_State.LAUNCHING_1:
-            texts.text_light_green.display("Press space to ", (Game_System.WIDTH / 2 - 220, HEIGHT / 2 - 100))
-            texts.text_light_green.display("lock the direction", (Game_System.WIDTH / 2 - 220, HEIGHT / 2 - 50))
+            texts.text_light_green.display("Press space to ",
+                                           (Game_System.WIDTH / 2 - 220, Game_System.HEIGHT / 2 - 100))
+            texts.text_light_green.display("lock the direction",
+                                           (Game_System.WIDTH / 2 - 220, Game_System.HEIGHT / 2 - 50))
         if state_now == Process_State.LAUNCHING_2:
-            texts.text_light_green.display("Press space to", (Game_System.WIDTH / 2 - 220, HEIGHT / 2 - 100))
-            texts.text_light_green.display("set the power", (Game_System.WIDTH / 2 - 220, HEIGHT / 2 - 50))
+            texts.text_light_green.display("Press space to",
+                                           (Game_System.WIDTH / 2 - 220, Game_System.HEIGHT / 2 - 100))
+            texts.text_light_green.display("set the power", (Game_System.WIDTH / 2 - 220, Game_System.HEIGHT / 2 - 50))
             gauge_power.update()
             gauge_power.display()
             rocket.calc_launch_angle(rocket_power)
@@ -114,13 +70,12 @@ def main():
             if game_state_now.solved:  # 1文打ち終わったら
                 word_data.translation()
                 question = SeparatedText(word_data.return_question(), screen)
-                print("question created")
                 rocket.accelerate(question.get_strlen() * 5)
                 game_state_now.solved = False
 
             word_data.display_question()  # 引数は問題の場所
             question.load_input(global_k)
-            if question.wait_input() == 1:  # あってたら
+            if question.judge_input() == 1:  # あってたら
                 game_state_now.combo += 1
                 game_state_now.typed += 1
                 game_state_now.score_mul = game_state_now.combo / 10
@@ -130,13 +85,13 @@ def main():
                     game_state_now.score_mul *= rocket.speed_x / 80
 
                 game_state_now.score += question.get_strlen() * (
-                            1 + game_state_now.score_mul) * game_state_now.staging_const
+                        1 + game_state_now.score_mul) * game_state_now.staging_const
             # 間違ってたらコンボを0に
-            elif question.wait_input() == 2:
+            elif question.judge_input() == 2:
                 game_state_now.combo /= 2.5
                 game_state_now.combo = math.floor(game_state_now.combo)
                 # 1文の入力が終わったら
-            elif question.wait_input() == 0:
+            elif question.judge_input() == 0:
                 game_state_now.solved = True  # k
             global_k = None
             game_state_now.score = math.floor(game_state_now.score)
@@ -145,7 +100,7 @@ def main():
             texts.text_light_blue.display("Multiplier:" + str(round(game_state_now.score_mul, 3)),
                                           (Game_System.WIDTH / 2 + 30, 150))
 
-            question.display_process()
+            question.display()
 
             texts.text_vector.display("Flight Time:" + str(math.floor(time_remaining)), (15, 0))
             texts.text_vector.display("Velocity:" + str(math.floor(rocket.speed_x)), (15, 70))
@@ -159,15 +114,17 @@ def main():
 
         elif state_now == Process_State.FALLING:
             game_state_now.dist_moved = math.floor(game_state_now.dist_moved)
-            texts.text_vector.display("GAME FINISHED!", (Game_System.WIDTH / 2 - 100, HEIGHT / 2 - 120))
-            texts.text_vector.display("Score:" + str(game_state_now.score), (Game_System.WIDTH / 2 - 100, HEIGHT / 2 + 50))
+            texts.text_vector.display("GAME FINISHED!", (Game_System.WIDTH / 2 - 100, Game_System.HEIGHT / 2 - 120))
+            texts.text_vector.display("Score:" + str(game_state_now.score),
+                                      (Game_System.WIDTH / 2 - 100, Game_System.HEIGHT / 2 + 50))
             texts.text_light_blue.display("You traveled:" + str(game_state_now.dist_moved) + "KM",
-                                          (Game_System.WIDTH / 2 - 140, HEIGHT / 2 + 75))
-            texts.text_white.display("Press [Enter] to restart", (Game_System.WIDTH / 2 - 140, HEIGHT / 2 + 110))
-            texts.text_white.display("Press [ESC] to quit", (Game_System.WIDTH / 2 - 140, HEIGHT / 2 + 140))
+                                          (Game_System.WIDTH / 2 - 140, Game_System.HEIGHT / 2 + 75))
+            texts.text_white.display("Press [Enter] to restart",
+                                     (Game_System.WIDTH / 2 - 140, Game_System.HEIGHT / 2 + 110))
+            texts.text_white.display("Press [ESC] to quit", (Game_System.WIDTH / 2 - 140, Game_System.HEIGHT / 2 + 140))
             texts.text_white.display(
                 "Your Typing Speed:" + str(round(game_state_now.typed / game_state_now.limit_time, 3)) + "/s",
-                (Game_System.WIDTH / 2 - 140, HEIGHT / 2 + 165))
+                (Game_System.WIDTH / 2 - 140, Game_System.HEIGHT / 2 + 165))
 
         for event in pygame.event.get():
             # ESCキーが押されたら終了
@@ -183,7 +140,7 @@ def main():
                     # K_RETURNはENTER
                 elif k is pygame.K_RETURN:
                     if state_now == Process_State.TITLE:
-                        #タイトルから移行する場面
+                        # タイトルから移行する場面
                         rocket.locked = False
                         gauge_timer.reset()
                         state_now = Process_State.LAUNCHING_1
@@ -192,7 +149,7 @@ def main():
                         state_now = Process_State.TITLE
                         rocket.reset()
                         gauge_timer.reset()
-                        #rocket = Rocket(1, 1, (100, 300), 0)
+                        # rocket = Rocket(1, 1, (100, 300), 0)
                         game_state_now.init()
                 elif k is pygame.K_SPACE:
                     # ロケットの向きを固定する瞬間
